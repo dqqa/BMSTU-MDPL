@@ -1,21 +1,26 @@
 .model small
 
-stack SEGMENT STACK 'STACK'
+charNumber equ (4-1)
+
+stackSeg SEGMENT STACK 'STACK'
     db 200h dup (?)
-stack ENDS
+stackSeg ENDS
 
-data SEGMENT 'DATA'
+dataSeg SEGMENT 'DATA'
     panicMsg db "An error occured!", 0Dh, 0Ah, '$'
-    helloMsg db "Hello world", 0Dh, 0Ah, '$'
-data ENDS
+    resultMsg db "Result: $"
+    enterMsg db "Enter characters: $"
+    newline db 0Dh, 0Ah, '$'
+dataSeg ENDS
 
-code SEGMENT 'CODE'
-    ASSUME cs:code, ds:data
+codeSeg SEGMENT 'CODE'
+    ASSUME cs:codeSeg, ds:dataSeg, ss:stackSeg
 
 panic proc near
     mov dx, OFFSET panicMsg
     mov ah, 09h
     int 21h
+
     mov ax, 4c01h
     int 21h
 panic endp
@@ -27,38 +32,58 @@ getchar proc near
     ret
 getchar endp
 
-; ds:dx buffer ptr
-inputString proc near
-    call panic
-inputString
-
-func proc near
-    mov dx, OFFSET helloMsg
-    mov ah, 09h
-    int 21h
-    ret
-func endp
-
 main proc near
-    mov ax, data
+    push bp
+    mov bp, sp
+    sub sp, 4
+
+    mov ax, dataSeg
     mov ds, ax
 
-    call getchar
-    sub al, '0'
-    cmp al, 0
-    jle panic
+    mov dx, OFFSET enterMsg
+    mov ah, 09h
+    int 21h
+
     xor cx, cx
-    mov cl, al
-again:
-    call func
-    mov ax, ip
-    push ax
-    jmp func
-    loop again
+
+@@again:
+    call getchar ; возврат -> al
+    cmp al, 0Dh  ; встретили конец строки
+    je @@done
+
+    cmp cx, charNumber
+    jne @@skip   ; cmove появился только с запуском Pentium Pro :(
+    mov BYTE PTR [bp-1], al
+
+@@skip:
+    inc cx
+    jmp @@again
+
+@@done:
+    cmp cx, charNumber
+    jg @@ok
+    call panic
+
+@@ok:
+    mov dx, OFFSET resultMsg
+    mov ah, 09h
+    int 21h
+
+    add BYTE PTR [bp-1], 'A'-'a' ; Смещаемся в ASCII-таблице
+    mov dl, BYTE PTR [bp-1]
+    mov ah, 02h
+    int 21h
+
+    mov dx, OFFSET newline
+    mov ah, 09h
+    int 21h
+
+    mov sp, bp
+    pop bp
 
     mov ax, 4c00h
     int 21h
 main endp
-code ENDS
+codeSeg ENDS
 
 END main
