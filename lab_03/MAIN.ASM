@@ -44,27 +44,27 @@ main proc near
     mov ah, 09h
     int 21h
 
-    xor cx, cx
+    xor cx, cx                   ; Здесь хранится индекс введенного символа
 
-@@again:
-    call getchar ; возврат -> al
-    cmp al, 0Dh  ; встретили конец строки
-    je @@done
+again:
+    call getchar                 ; возврат через al
+    cmp al, 0Dh                  ; встретили конец строки
+    je done
 
     cmp cx, charNumber
-    jne @@skip   ; cmove появился только с запуском Pentium Pro :(
+    jne skip                     ; cmove появился только с запуском Pentium Pro :(
     mov BYTE PTR [bp-1], al
 
-@@skip:
+skip:
     inc cx
-    jmp @@again
+    jmp again
 
-@@done:
+done:
     cmp cx, charNumber
-    jg @@ok
+    jg ok
     call panic
 
-@@ok:
+ok:
     mov dx, OFFSET resultMsg
     mov ah, 09h
     int 21h
