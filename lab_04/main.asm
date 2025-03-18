@@ -340,6 +340,6 @@ panic_msg db "Panic!", 10, 0
 result_msg db "Result:", 10, 0
 
 section '.bss' writable
-matrix db ROWS*COLS dup (0xff)
+matrix db ROWS*COLS dup (?)
 
 section '.note.GNU-stack'
