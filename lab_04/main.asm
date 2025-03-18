@@ -17,15 +17,16 @@ macro exit code
     syscall
 }
 
-extrn printf
-extrn scanf
+extrn 'printf' as _printf
+printf = PLT _printf
+
+extrn 'scanf' as _scanf
+scanf = PLT _scanf
+
+extrn 'memmove' as _memmove
+memmove = PLT _memmove
 
 section '.text' executable
-
-; entry start
-start:
-    call main
-    exit 0
 
 public main
 main:
@@ -47,7 +48,7 @@ main:
     ; mov rdi, input_cols_cnt
     ; call input_number
 
-    mov rdi, matrix
+    lea rdi, [matrix]
     mov esi, 2
     mov edx, 2
     call input_matrix
@@ -95,11 +96,11 @@ input_number:
     sub rsp, 16
 
     mov esi, dword [rbp-4]
-    call PLT printf
+    call printf
 
-    mov rdi, input_cnt_fmt
+    lea rdi, [input_cnt_fmt]
     lea rsi, [rbp-4]
-    call PLT scanf
+    call scanf
 
     mov eax, dword [rbp-4]
 
@@ -120,8 +121,8 @@ input_matrix:
     mov dword [rbp-4], eax ; count
     mov qword [rbp-12], rdi ; saved mat ptr
 
-    mov rdi, input_matrix_msg
-    call PLT printf
+    lea rdi, [input_matrix_msg]
+    call printf
 
     mov dword [rbp-16], 0 ; counter
 
@@ -131,14 +132,14 @@ input_matrix:
     cmp dword [rbp-16], eax
     je .ok
 
-    mov rdi, input_element_fmt
+    lea rdi, [input_element_fmt]
     mov rsi, qword [rbp-12]
 
     xor rax, rax
     mov eax, dword [rbp-16]
     add rsi, rax
 
-    call PLT scanf
+    call scanf
     cmp rax, 1
     jne .error
 
@@ -146,8 +147,8 @@ input_matrix:
     jmp .input_loop
 
 .error:
-    mov rdi, panic_msg
-    call PLT printf
+    lea rdi, [panic_msg]
+    call printf
     exit 1
 
 .ok:
@@ -155,16 +156,107 @@ input_matrix:
     pop rbp
     ret
 
+; rdi - mat ptr
+; esi - row index
+; edx - row count
+; ecx - columns count
+delete_matrix_row:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 16
+
+    and ecx, 0xFFFFFFFF
+
+    mov rax, rcx
+    mul esi
+
+    add rdi, rax ; сместились до строки
+
+    push rax
+
+    mov eax, edx
+    mul ecx
+    lea ebx, [eax]
+    
+    pop rax
+
+    sub ebx, eax
+    sub ebx, ecx ; колво элементов для смещения
+    ; 1 элемент - 1 байт, поэтому домножать на размер не требуется
+
+    mov rdx, rbx
+    lea rsi, [rbx+rcx]
+
+    call memmove
+
+    xor rax, rax
+
+    mov rsp, rbp
+    pop rbp
+    ret
+
+; rdi - mat ptr
+; esi - row count
+; edx - column count
+remove_max_row:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 16
+
+    ; TODO
+
+    mov rsp, rbp
+    pop rbp
+    ret
+
+; rdi - mat ptr
+; rsi - row count
+; rdx - column count
+print_matrix:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 32
+
+    mov qword [rbp-8], 0  ; row counter
+    mov qword [rbp-16], 0 ; column counter
+
+    mov qword [rbp-24], rsi ; rows
+    mov qword [rbp-32], rdx ; columns
+
+.row_loop:
+.col_loop:
+    mov rax, qword [rbp-24]
+    cmp rax, qword [rbp-8]
+    je .end
+
+    inc qword [rbp-16]
+    jmp .col_loop
+
+    lea rdi, [newline]
+    call printf    
+    jmp .row_loop
+
+.end:
+    mov rsp, rbp
+    pop rbp
+    ret
+
+
 
 section '.rodata'
 input_rows_cnt db "Input row count: ", 0
 input_cols_cnt db "Input col count: ", 0
-input_matrix_msg db "Input matrix: ", 0
+input_matrix_msg db "Input matrix", 10, 0
 input_cnt_fmt db "%d", 0
 
 input_element_fmt db "%hhd", 0
+
+print_element_fmt db "%hhd ", 0
+newline db 10, 0
 
 panic_msg db "Panic!", 10, 0
 
 section '.bss' writable
 matrix db ROWS*COLS dup (0xff)
+
+section '.note.GNU-stack'
