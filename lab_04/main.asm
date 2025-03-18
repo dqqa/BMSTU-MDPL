@@ -32,26 +32,33 @@ public main
 main:
     push rbp
     mov rbp, rsp
+    sub rsp, 16
 
-    ; mov rdi, STDOUT_FILENO
-    ; mov rsi, msg
-    ; mov edx, msg_len
-    ; mov rax, SYS_write
-    ; syscall
+    lea rdi, [input_rows_cnt]
+    call input_number
+    mov dword [rbp-4], eax ; row count
 
-    ; mov rdi, input_cnt_fmt
-    ; call input_number
-
-    ; mov rdi, input_rows_cnt
-    ; call input_number
-
-    ; mov rdi, input_cols_cnt
-    ; call input_number
+    lea rdi, [input_cols_cnt]
+    call input_number
+    mov dword [rbp-8], eax ; column count
 
     lea rdi, [matrix]
-    mov esi, 2
-    mov edx, 2
+    mov esi, dword [rbp-4]
+    mov edx, dword [rbp-8]
     call input_matrix
+
+    lea rdi, [matrix]
+    lea rsi, [rbp-4]
+    mov edx, dword [rbp-8]
+    call remove_max_row
+
+    lea rdi, [result_msg]
+    call printf
+
+    lea rdi, [matrix]
+    mov esi, dword [rbp-4]
+    mov edx, dword [rbp-8]
+    call print_matrix
 
     xor rax, rax
 
@@ -167,26 +174,24 @@ delete_matrix_row:
 
     and ecx, 0xFFFFFFFF
 
+    push rdx
     mov rax, rcx
-    mul esi
+    mul esi ; изменяет rdx
+    pop rdx
 
-    add rdi, rax ; сместились до строки
+    add rdi, rax ; сместились до строки (dst)
 
+    ; (row_cnt-idx-1) * sizeof(el)
+    mov rax, rdx
+    sub rax, rsi
+    sub rax, 1
+    mul ecx
     push rax
 
-    mov eax, edx
-    mul ecx
-    lea ebx, [eax]
-    
-    pop rax
+    mov rsi, rdi
+    add rsi, rcx ; src
 
-    sub ebx, eax
-    sub ebx, ecx ; колво элементов для смещения
-    ; 1 элемент - 1 байт, поэтому домножать на размер не требуется
-
-    mov rdx, rbx
-    lea rsi, [rbx+rcx]
-
+    pop rdx ; size (bytes)
     call memmove
 
     xor rax, rax
@@ -196,14 +201,71 @@ delete_matrix_row:
     ret
 
 ; rdi - mat ptr
-; esi - row count
-; edx - column count
+; rsi - row count ptr
+; rdx - column count
 remove_max_row:
     push rbp
     mov rbp, rsp
-    sub rsp, 16
+    sub rsp, 64
 
-    ; TODO
+    mov qword [rbp-8], 0  ; row counter
+    mov qword [rbp-16], 0 ; column counter
+
+    mov eax, dword [rsi]
+    mov qword [rbp-24], rax ; rows
+    mov qword [rbp-32], rdx ; columns
+
+    mov qword [rbp-40], rdi ; saved mat ptr
+
+    mov dword [rbp-44], 0 ; max sum
+    mov dword [rbp-48], 0 ; cur sum
+    mov qword [rbp-56], 0 ; max index
+    
+    dec dword [rsi]
+    
+
+.row_loop:
+    mov rax, qword [rbp-24]
+    cmp rax, qword [rbp-8]
+    je .end
+.col_loop:
+    mov rax, qword [rbp-32]
+    cmp rax, qword [rbp-16]
+    je .col_end
+
+    mov rsi, qword [rbp-40]
+    mov rax, qword [rbp-8]
+    mul qword [rbp-32]
+    add rsi, rax
+    add rsi, qword [rbp-16]
+    mov sil, byte [rsi]
+    and esi, 0xff
+
+    add dword [rbp-48], esi
+
+    inc qword [rbp-16]
+    jmp .col_loop
+
+.col_end:
+    mov eax, dword [rbp-48]
+    cmp eax, dword [rbp-44]
+    jle .not_greater
+    mov dword [rbp-44], eax ; если сумма больше чем макс
+    mov rax, qword [rbp-8]
+    mov qword [rbp-56], rax ; устанавливаем новую строку с максимальной суммой элементов
+
+.not_greater:
+    mov dword [rbp-48], 0 ; сбрасываем текущую сумму
+    mov qword [rbp-16], 0 ; обнуляем счетчик столбцов
+    inc qword [rbp-8] ; увеличиваем счетчик строк
+    jmp .row_loop
+
+.end:
+    mov rdi, qword [rbp-40]
+    mov rsi, qword [rbp-56]
+    mov rdx, qword [rbp-24]
+    mov rcx, qword [rbp-32]
+    call delete_matrix_row
 
     mov rsp, rbp
     pop rbp
@@ -215,33 +277,52 @@ remove_max_row:
 print_matrix:
     push rbp
     mov rbp, rsp
-    sub rsp, 32
+    sub rsp, 48
 
     mov qword [rbp-8], 0  ; row counter
     mov qword [rbp-16], 0 ; column counter
 
+    and esi, 0xffffffff
+    and edx, 0xffffffff
     mov qword [rbp-24], rsi ; rows
     mov qword [rbp-32], rdx ; columns
 
+    mov qword [rbp-40], rdi ; saved mat ptr
+
 .row_loop:
-.col_loop:
     mov rax, qword [rbp-24]
     cmp rax, qword [rbp-8]
     je .end
+.col_loop:
+    mov rax, qword [rbp-32]
+    cmp rax, qword [rbp-16]
+    je .col_end
+
+    mov rsi, qword [rbp-40]
+    mov rax, qword [rbp-8]
+    mul qword [rbp-32]
+    add rsi, rax
+    add rsi, qword [rbp-16]
+    mov sil, byte [rsi]
+
+    lea rdi, [print_element_fmt]
+    call printf
 
     inc qword [rbp-16]
     jmp .col_loop
 
+.col_end:
     lea rdi, [newline]
-    call printf    
+    call printf
+
+    mov qword [rbp-16], 0 ; обнуляем счетчик столбцов
+    inc qword [rbp-8] ; увеличиваем счетчик строк
     jmp .row_loop
 
 .end:
     mov rsp, rbp
     pop rbp
     ret
-
-
 
 section '.rodata'
 input_rows_cnt db "Input row count: ", 0
@@ -255,6 +336,8 @@ print_element_fmt db "%hhd ", 0
 newline db 10, 0
 
 panic_msg db "Panic!", 10, 0
+
+result_msg db "Result:", 10, 0
 
 section '.bss' writable
 matrix db ROWS*COLS dup (0xff)

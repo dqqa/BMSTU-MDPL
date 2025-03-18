@@ -1,18 +1,18 @@
 FASM := fasm
 
-all: main test
+all: main.exe test.exe
 
-main: main.o
+main.exe: main.o
 	gcc -o $@ $^
 
 main.o: main.asm
 	$(FASM) $< $@
 
-test: test.o
+test.exe: test.o
 	gcc -o $@ $^
 
 test.o: test.asm
 	$(FASM) $< $@
 
 clean:
-	$(RM) -v ./*.o main test
+	$(RM) -v ./*.o ./*.exe
