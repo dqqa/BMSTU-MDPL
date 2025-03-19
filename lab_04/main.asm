@@ -108,7 +108,16 @@ input_number:
     lea rdi, [input_cnt_fmt]
     lea rsi, [rbp-4]
     call scanf
+    cmp rax, 1
+    jne .error
+    jmp .ok
 
+.error:
+    lea rdi, [panic_msg]
+    call printf
+    exit 1
+
+.ok:
     mov eax, dword [rbp-4]
 
     mov rsp, rbp
