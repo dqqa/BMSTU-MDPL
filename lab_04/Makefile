@@ -1,17 +1,17 @@
 FASM := fasm
 
+SRCS := $(filter-out ./test.asm, $(wildcard ./*.asm))
+OBJS := $(SRCS:%.asm=%.o)
+
 all: main.exe test.exe
 
-main.exe: main.o
+main.exe: $(OBJS)
 	gcc -o $@ $^
-
-main.o: main.asm
-	$(FASM) $< $@
 
 test.exe: test.o
 	gcc -o $@ $^
 
-test.o: test.asm
+%.o: %.asm
 	$(FASM) $< $@
 
 clean:
