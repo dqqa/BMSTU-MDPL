@@ -6,8 +6,6 @@ public input_number
 public input_matrix
 public print_matrix
 
-extrn panic_msg
-
 section '.text' executable
 
 ; rdi - msg
@@ -145,6 +143,7 @@ input_element_fmt db "%hhd", 0
 input_matrix_msg db "Input matrix", 10, 0
 
 print_element_fmt db "%hhd ", 0
+panic_msg db "Panic!", 10, 0
 
 newline db 10, 0
 

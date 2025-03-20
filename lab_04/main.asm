@@ -2,8 +2,6 @@ format ELF64
 
 include "common.inc"
 
-public panic_msg
-
 extrn input_number
 extrn input_matrix
 extrn print_matrix
@@ -11,11 +9,20 @@ extrn remove_max_row
 
 section '.text' executable
 
+
 public main
 main:
     push rbp
     mov rbp, rsp
     sub rsp, 16
+
+    ;       |  16  ||   8    ||   8    |
+    ; 0 ... [locals][prev_rbp][ret_addr] ... 0xff..ff
+    ; RSP:  ^
+
+    ; 16-byte aligned (x86_64 System V ABI)
+    ; Args via registers: rdi, rsi, rdx, rcx, r8, r9
+    ; Return via rax
 
     lea rdi, [input_rows_cnt]
     call input_number
@@ -52,8 +59,6 @@ main:
 section '.rodata'
 input_rows_cnt db "Input row count: ", 0
 input_cols_cnt db "Input col count: ", 0
-
-panic_msg db "Panic!", 10, 0
 
 result_msg db "Result:", 10, 0
 
