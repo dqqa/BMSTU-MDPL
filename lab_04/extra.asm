@@ -12,7 +12,7 @@ rect struct
 rect ends
 
 .data
-    myrect rect {}
+    myrect rect {{10, 10}, {20, 50}}
 
 .code
     .STARTUP
@@ -20,15 +20,10 @@ rect ends
     mov bp, sp
     sub sp, 4
 
-    mov myrect.origin.x, 15
-    mov myrect.origin.y, 50
-
-    mov myrect.sz.x, 20
-    mov myrect.sz.y, 50
-
     mov al, 13h
     int 10h
 
+again:
     mov word ptr [bp-2], 0 ; x
     mov word ptr [bp-4], 0 ; y
 
@@ -75,5 +70,37 @@ end_col:
     jmp row_loop
 
 end_loop:
-    jmp $
+
+mouse_loop:
+    mov ax, 3
+    int 33h
+    and bx, 00000001b ; LMB clicked
+    jnz mouse_endloop
+    jmp mouse_loop
+
+mouse_endloop:
+    ; clear screen
+    push dx
+    push cx
+
+    xor di, di
+    mov ax, 0a000h
+    mov es, ax
+    mov cx, 320*200
+    mov al, 0
+    rep stosb
+
+    xor dx, dx
+    
+    ; позиция курсора по Х в диапазоне 0..639. Делим на 2.
+    pop cx
+    mov ax, cx
+    mov bx, 2
+    div bx
+    mov cx, ax
+
+    pop dx
+    mov myrect.origin.x, cx
+    mov myrect.origin.y, dx
+    jmp again
 END
