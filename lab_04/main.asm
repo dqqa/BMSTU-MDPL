@@ -19,11 +19,11 @@ main:
     ; 0 ... [locals][prev_rbp][ret_addr] ... 0xff..ff
     ; RSP:  ^
 
-    ; 16-byte aligned (x86_64 System V ABI)
+    ; Stack 16-byte aligned (x86_64 System V ABI)
     ; Args via registers: rdi, rsi, rdx, rcx, r8, r9
     ; Return via rax
 
-    lea rdi, [input_rows_cnt]
+    lea rdi, [input_rows_cnt] ; RIP-relative addressing
     call input_number
     mov dword [rbp-4], eax ; row count
 
@@ -74,5 +74,5 @@ empty_msg db "Empty matrix", 10, 0
 section '.bss' writable
 matrix db ROWS*COLS dup (?)
 
-; т.к. подразумеваем что стек не будет иметь права execute
+; т.к. подразумеваем что стек не будет иметь права на выполнение
 section '.note.GNU-stack'
