@@ -9,7 +9,6 @@ extrn remove_max_row
 
 section '.text' executable
 
-
 public main
 main:
     push rbp
@@ -45,11 +44,20 @@ main:
     lea rdi, [result_msg]
     call printf
 
+    cmp dword [rbp-4], 0
+    je .empty
+
     lea rdi, [matrix]
     mov esi, dword [rbp-4]
     mov edx, dword [rbp-8]
     call print_matrix
+    jmp .end
 
+.empty:
+    lea rdi, [empty_msg]
+    call printf
+
+.end:
     xor rax, rax
 
     mov rsp, rbp
@@ -61,6 +69,7 @@ input_rows_cnt db "Input row count: ", 0
 input_cols_cnt db "Input col count: ", 0
 
 result_msg db "Result:", 10, 0
+empty_msg db "Empty matrix", 10, 0
 
 section '.bss' writable
 matrix db ROWS*COLS dup (?)

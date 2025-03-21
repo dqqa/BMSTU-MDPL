@@ -47,7 +47,7 @@ delete_matrix_row:
     and ecx, 0xFFFFFFFF
 
     push rdx
-    mov rax, rcx
+    mov rax, COLS
     mul esi ; изменяет rdx
     pop rdx
 
@@ -57,11 +57,12 @@ delete_matrix_row:
     mov rax, rdx
     sub rax, rsi
     sub rax, 1
-    mul ecx
+    mov rbx, COLS
+    mul rbx
     push rax
 
     mov rsi, rdi
-    add rsi, rcx ; src
+    add rsi, COLS ; src
 
     pop rdx ; size (bytes)
     call memmove
@@ -94,7 +95,6 @@ remove_max_row:
     mov qword [rbp-56], 0 ; max index
     
     dec dword [rsi]
-    
 
 .row_loop:
     mov rax, qword [rbp-24]
@@ -107,7 +107,9 @@ remove_max_row:
 
     mov rsi, qword [rbp-40]
     mov rax, qword [rbp-8]
-    mul qword [rbp-32]
+    mov rbx, COLS
+    mul rbx
+
     add rsi, rax
     add rsi, qword [rbp-16]
     mov sil, byte [rsi]

@@ -42,37 +42,51 @@ input_number:
 input_matrix:
     push rbp
     mov rbp, rsp
-    sub rsp, 16
+    sub rsp, 32
 
-    mov eax, esi
-    mul edx
-    mov dword [rbp-4], eax ; count
     mov qword [rbp-12], rdi ; saved mat ptr
+
+    mov dword [rbp-28], esi ; row count
+    mov dword [rbp-32], edx ; col count
 
     lea rdi, [input_matrix_msg]
     call printf
 
-    mov dword [rbp-16], 0 ; counter
+    mov dword [rbp-16], 0 ; row counter
+    mov dword [rbp-24], 0 ; col counter
 
-.input_loop:
-    xor rax, rax
-    mov eax, dword [rbp-4]
-    cmp dword [rbp-16], eax
-    je .ok
-
-    lea rdi, [input_element_fmt]
-    mov rsi, qword [rbp-12]
-
+.row_loop:
     xor rax, rax
     mov eax, dword [rbp-16]
+    cmp dword [rbp-28], eax
+    je .ok
+
+.col_loop:
+    xor rax, rax
+    mov eax, dword [rbp-24]
+    cmp dword [rbp-32], eax
+    je .col_end
+
+    lea rdi, [input_element_fmt]
+    xor rax, rax
+    mov eax, dword [rbp-16]
+    mov rbx, COLS
+    mul rbx
+    add eax, dword [rbp-24]
+    mov rsi, qword [rbp-12]
     add rsi, rax
 
     call scanf
     cmp rax, 1
     jne .error
 
+    inc dword [rbp-24]
+    jmp .col_loop
+
+.col_end:
+    mov dword [rbp-24], 0
     inc dword [rbp-16]
-    jmp .input_loop
+    jmp .row_loop
 
 .error:
     lea rdi, [panic_msg]
@@ -113,7 +127,9 @@ print_matrix:
 
     mov rsi, qword [rbp-40]
     mov rax, qword [rbp-8]
-    mul qword [rbp-32]
+    mov rbx, COLS
+    mul rbx
+
     add rsi, rax
     add rsi, qword [rbp-16]
     mov sil, byte [rsi]

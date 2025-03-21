@@ -12,7 +12,7 @@ main:
     sub rsp, 16
 
     lea rdi, [msg]
-    call PLT printf    
+    call PLT printf
 
     xor rax, rax
 
