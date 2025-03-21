@@ -74,4 +74,5 @@ empty_msg db "Empty matrix", 10, 0
 section '.bss' writable
 matrix db ROWS*COLS dup (?)
 
+; т.к. подразумеваем что стек не будет иметь права execute
 section '.note.GNU-stack'
