@@ -44,7 +44,7 @@ input_matrix:
     mov rbp, rsp
     sub rsp, 32
 
-    mov qword [rbp-12], rdi ; saved mat ptr
+    mov qword [rbp-8], rdi ; saved mat ptr
 
     mov dword [rbp-28], esi ; row count
     mov dword [rbp-32], edx ; col count
@@ -73,7 +73,7 @@ input_matrix:
     mov rbx, COLS
     mul rbx
     add eax, dword [rbp-24]
-    mov rsi, qword [rbp-12]
+    mov rsi, qword [rbp-8]
     add rsi, rax
 
     call scanf
