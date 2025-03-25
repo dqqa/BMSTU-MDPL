@@ -1,0 +1,12 @@
+{
+	"defsec": {
+		"scope": "nasm",
+		"prefix": "defsec",
+		"body": [
+			"default rel\n",
+			"section .text\n$1",
+			"section .rodata\n",
+			"section .note.GNU-stack",
+		]
+	}
+}
