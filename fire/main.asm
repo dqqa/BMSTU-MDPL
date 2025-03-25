@@ -5,6 +5,10 @@ BACKGROUND_COLOR equ 3
 LINE_COLOR equ 41
 TIME_INTERVAL equ 5
 
+PARTICLE_SIZE equ 2
+PARTICLE_SPAWN_BATCH equ 5
+MAX_PARTICLES equ 30
+
 ROWS equ 200
 COLS equ 320
 
@@ -15,11 +19,21 @@ point struct
     y word ?
 point ends
 
+particle struct
+    p point {?, ?}
+    color byte ?
+particle ends
+
 .data
     rand_state dw 0
 
     p1 point {0, 0}
     p2 point {0, 0}
+
+    particles_alive dw 0
+    particles MAX_PARTICLES dup (particle)
+
+;     particle_colors db
 
 .code
     .STARTUP
@@ -117,6 +131,104 @@ wait_end:
     jmp $
     mov ax, 4c00h
     int 21h
+
+particles_update proc
+    push bp
+    mov bp, sp
+    sub sp, 4
+    mov word ptr [bp-2], 0 ; counter
+
+
+    mov sp, bp
+    pop bp
+    ret
+particles_update endp
+
+particles_draw proc
+    push bp
+    mov bp, sp
+    sub sp, 4
+    mov word ptr [bp-2], 0 ; counter
+
+pd_begin:
+    mov ax, particles_alive
+    cmp word ptr [bp-2], ax
+    je pd_end
+
+    mov di, word ptr [bp-2]
+    call draw_particle
+
+    inc word ptr [bp-2]
+    jmp pd_begin
+
+pd_end:
+    mov sp, bp
+    pop bp
+    ret
+particles_draw endp
+
+; di - index
+draw_particle proc
+    push bp
+    mov bp, sp
+    sub sp, 5
+
+    mov word ptr [bp-2], 0 ; row counter
+    mov word ptr [bp-4], 0 ; col counter
+
+    mov ax, di
+    mov bx, sizeof particle
+    mul bx
+    mov di, ax ; di - offset in particles table
+    lea bx, [di+4] ; color offset
+
+    mov al, [particles+bx]
+    mov byte ptr [bp-5],
+    mov ax, 0a000h
+    mov es, ax
+dp_rowsloop:
+    cmp word ptr [bp-2], PARTICLE_SIZE
+    je dp_endloop
+dp_colsloop:
+    cmp word ptr [bp-4], PARTICLE_SIZE
+    je dp_endcol
+    xor dx, dx
+
+    lea bx, [particles+di]
+    mov ax, [bx]
+    push bx
+    mov bx, COLS
+    mul bx
+
+    pop bx
+    add ax, word ptr [bx+2] ; now pointing to left top corner
+
+    add ax, word ptr [bp-4] ; add current row
+    push ax
+
+    mov ax, word ptr [bp-2]
+    mov bx, COLS
+    mul bx
+
+    pop bx
+    add bx, ax
+
+    mov al,
+
+    mov byte ptr es:[bx],
+
+    inc word ptr [bp-4]
+    jmp dp_colsloop
+dp_endcol:
+    inc word ptr [bp-2]
+    mov word ptr [bp-4], 0
+    jmp dp_rowsloop
+
+dp_endloop:
+    mov sp, bp
+    pop bp
+    ret
+draw_particle proc
 
 ; di - new random seed
 srand proc
