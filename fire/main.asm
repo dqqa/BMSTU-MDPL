@@ -3,16 +3,18 @@
 
 BACKGROUND_COLOR equ 3
 LINE_COLOR equ 41
-TIME_INTERVAL equ 5
+TIME_INTERVAL equ 2
 
 PARTICLE_SIZE equ 2
 PARTICLE_SPAWN_BATCH equ 5
 MAX_PARTICLES equ 30
+PARTICLES_DY equ 5
+PARTICLE_SPAWN_RATE equ 3
 
 ROWS equ 200
 COLS equ 320
 
-PEAK_COUNT equ 32
+PEAK_COUNT equ 40
 
 point struct
     x word ?
@@ -31,7 +33,8 @@ particle ends
     p2 point {0, 0}
 
     particles_alive dw 0
-    particles MAX_PARTICLES dup (particle)
+    particles particle MAX_PARTICLES dup ({})
+    particles_last_spawned db 0
 
 ;     particle_colors db
 
@@ -73,12 +76,15 @@ again:
     call rand
     mov di, ax
     mov si, 0
-    mov dx, 50
+    mov dx, 30
     call clamp
 
     mov p2.y, ax
     mov ax, word ptr [bp-4]
     mov p2.x, ax
+
+    add p2.y, 170
+
     push ax
 
     mov al, LINE_COLOR
@@ -95,7 +101,6 @@ endloop:
     mov p1.y, 0
 
     mov p2.x, 0
-    mov p2.y, 0
 
     mov word ptr [bp-4], 0
 
@@ -138,7 +143,23 @@ particles_update proc
     sub sp, 4
     mov word ptr [bp-2], 0 ; counter
 
+    mov al, particles_last_spawned
+    cmp al, 0
+    jne pu_no_need_spawn
 
+pu_no_need_spawn:
+
+pu_update_loop:
+    mov ax, word ptr [bp-2]
+    cmp ax, particles_alive
+    je pu_update_endloop
+
+
+
+    inc word ptr [bp-2]
+    jmp pu_update_loop
+
+pu_update_endloop:
     mov sp, bp
     pop bp
     ret
@@ -183,7 +204,8 @@ draw_particle proc
     lea bx, [di+4] ; color offset
 
     mov al, [particles+bx]
-    mov byte ptr [bp-5],
+    mov byte ptr [bp-5], al ; saved color
+
     mov ax, 0a000h
     mov es, ax
 dp_rowsloop:
@@ -195,7 +217,7 @@ dp_colsloop:
     xor dx, dx
 
     lea bx, [particles+di]
-    mov ax, [bx]
+    mov ax, [bx] ; particle x
     push bx
     mov bx, COLS
     mul bx
@@ -203,7 +225,7 @@ dp_colsloop:
     pop bx
     add ax, word ptr [bx+2] ; now pointing to left top corner
 
-    add ax, word ptr [bp-4] ; add current row
+    add ax, word ptr [bp-4] ; add current col
     push ax
 
     mov ax, word ptr [bp-2]
@@ -213,9 +235,9 @@ dp_colsloop:
     pop bx
     add bx, ax
 
-    mov al,
+    mov al, byte ptr [bp-5] ; restore color
 
-    mov byte ptr es:[bx],
+    mov byte ptr es:[bx], al ; write pixel
 
     inc word ptr [bp-4]
     jmp dp_colsloop
@@ -228,7 +250,7 @@ dp_endloop:
     mov sp, bp
     pop bp
     ret
-draw_particle proc
+draw_particle endp
 
 ; di - new random seed
 srand proc
@@ -243,7 +265,7 @@ rand proc
     ; state ^= state << 5;
     ; return state;
     mov ax, rand_state
-    mov cx, 3
+    mov cx, 7
 first_step:
     shl ax, 1 ; невозможно совершить битовый сдивг на более чем 1 в 8086
     loop first_step
@@ -251,7 +273,7 @@ first_step:
     xor rand_state, ax
     mov ax, rand_state
 
-    mov cx, 17
+    mov cx, 9
 second_step:
     shr ax, 1
     loop second_step
@@ -259,7 +281,7 @@ second_step:
     xor rand_state, ax
 
     mov ax, rand_state
-    mov cx, 5
+    mov cx, 3
 third_step:
     shl ax, 1
     loop third_step
@@ -348,7 +370,7 @@ dl_begin:
     mov di, p1.x
     mov si, p1.y
     mov dl, byte ptr [bp-12]
-    call plot_point
+    call plot_line_to_border
 
     mov ax, word ptr [bp-10]
     shl ax, 1
@@ -410,6 +432,35 @@ plot_point proc
     ret
 plot_point endp
 
+; di - x
+; si - y
+; dl - color
+plot_line_to_border proc
+    mov ax, 0a000h
+    mov es, ax
+
+pltb_begin:
+    cmp si, ROWS
+    je pltb_end
+
+    push dx
+
+    mov ax, si
+    mov bx, COLS
+    mul bx
+    add ax, di
+
+    pop dx
+    mov bx, ax
+    mov es:[bx], dl
+
+    inc si
+    jmp pltb_begin
+
+pltb_end:
+    ret
+plot_line_to_border endp
+
 ; al - color
 fill_background proc
     push bp
@@ -456,35 +507,3 @@ sign_end:
     ret
 sign endp
 END
-
-
-;     mov word ptr [bp-2], 0 ; rows counter
-;     mov word ptr [bp-4], 0 ; cols counter
-;
-;     mov byte ptr [bp-5], al ; save color
-; fb_rows_loop:
-;     cmp word ptr [bp-2], ROWS
-;     je fb_end
-; fb_cols_loop:
-;     cmp word ptr [bp-4], COLS
-;     je fb_cols_end
-;
-;     mov ax, word ptr [bp-2]
-;     mov bx, COLS
-;     mul bx
-;     add ax, word ptr [bp-4]
-;     mov bx, ax
-;
-;     mov al, byte ptr [bp-5]
-;     mov es:[bx], al
-;
-;     inc word ptr [bp-4]
-;
-;     jmp fb_cols_loop
-;
-; fb_cols_end:
-;     mov word ptr [bp-4], 0
-;     inc word ptr [bp-2]
-;     jmp fb_rows_loop
-;
-; fb_end:
