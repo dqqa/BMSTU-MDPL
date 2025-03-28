@@ -1,24 +1,15 @@
-; Жижин Никита Игоревич. ИУ7-41Б.
-; Вариант 2.
-; Задание: В графическом режиме 320х200 с 8 битным цветом (см. прерывание int 10h)
-; отрисовать анимацию простого цветного огня в нижней части окна (с использованием ГПСЧ).
-
-; Выход осуществляется при нажатии кнопки `q`
 .model tiny
 .8086
 
 BACKGROUND_COLOR equ 3
+LINE_COLOR equ 41
 TIME_INTERVAL equ 2
 
-LINE1_COLOR equ 41
-PEAK1_MAX equ 150
-PEAK1_MIN equ 170
-
-LINE2_COLOR equ 44
-LINE2_DELTA equ 10
-
-LINE3_COLOR equ 15
-LINE3_DELTA equ 30
+PARTICLE_SIZE equ 2
+PARTICLE_SPAWN_BATCH equ 5
+MAX_PARTICLES equ 30
+PARTICLES_DY equ 5
+PARTICLE_SPAWN_RATE equ 3
 
 ROWS equ 200
 COLS equ 320
@@ -30,19 +21,30 @@ point struct
     y word ?
 point ends
 
+particle struct
+    p point {?, ?}
+    color byte ?
+particle ends
+
 .data
     rand_state dw 0
 
     p1 point {0, 0}
     p2 point {0, 0}
 
+    particles_alive dw 0
+    particles particle MAX_PARTICLES dup ({})
+    particles_last_spawned db 0
+
+;     particle_colors db
+
 .code
     .STARTUP
     push bp
     mov bp, sp
-    sub sp, 12
+    sub sp, 8
 
-    mov di, 0123h ; initialize PRNG
+    mov di, 0123h
     call srand
 
     mov al, 13h
@@ -52,90 +54,42 @@ point ends
     mov ax, COLS
     mov bx, PEAK_COUNT
     div bx
-
     mov word ptr [bp-2], ax ; step between peaks
     mov word ptr [bp-4], ax ; cur x
 
-    mov word ptr [bp-8], 0  ; saved l1.y
-    mov word ptr [bp-10], 0  ; saved l2.y
-    mov word ptr [bp-12], 0  ; saved l3.y
-
 again:
     cmp p2.x, COLS
-    jge endloop
-
+    je endloop
     mov ax, p2.x
     mov p1.x, ax
 
-    mov ax, word ptr [bp-4]
-    mov p2.x, ax
-
-; LINE 1
-    mov ax, word ptr [bp-8]
+    mov ax, p2.y
     mov p1.y, ax
 
     call rand
     mov di, ax
-    mov si, PEAK1_MAX
-    mov dx, PEAK1_MIN
+    mov si, 0
+    mov dx, 30
     call clamp
 
     mov p2.y, ax
-    mov word ptr [bp-8], ax
-
-    mov al, LINE1_COLOR
-    call drawline
-
-; LINE 2
-    mov ax, word ptr [bp-10]
-    mov p1.y, ax
-
-;     call rand
-;     mov di, ax
-;     mov si, PEAK2_MAX
-;     mov dx, PEAK2_MIN
-;     call clamp
-
-    mov ax, word ptr [bp-8]
-    add ax, LINE2_DELTA
-
-    mov p2.y, ax
-    mov word ptr [bp-10], ax
-
-    mov al, LINE2_COLOR
-    call drawline
-
-; LINE 3
-    mov ax, word ptr [bp-12]
-    mov p1.y, ax
-
-    mov ax, word ptr [bp-8]
-    add ax, LINE3_DELTA
-
-    mov p2.y, ax
-    mov word ptr [bp-12], ax
-
-    mov al, LINE3_COLOR
-    call drawline
-
     mov ax, word ptr [bp-4]
+    mov p2.x, ax
+
+    add p2.y, 170
+
+    push ax
+
+    mov al, LINE_COLOR
+    call drawline
+
+    pop ax
     add ax, word ptr [bp-2]
     mov word ptr [bp-4], ax
 
-    mov ah, 06h
-    mov dl, 0ffh
-    int 21h
-    jz again
-
-    cmp al, 'q'
-    jnz again
-    jmp prg_terminate
+    jmp again
 
 endloop:
-;     mov word ptr [bp-8], 0
-;     mov word ptr [bp-10], 0
-;     mov word ptr [bp-12], 0
-
     mov p1.x, 0
     mov p1.y, 0
 
@@ -144,7 +98,7 @@ endloop:
     mov word ptr [bp-4], 0
 
     xor ax, ax
-    int 1ah ; timer. dx increments each 1/18.2 s
+    int 1ah ; increments each 1/18.2 s
     mov word ptr [bp-6], dx ; sleep_start
 
 wait_more:
@@ -160,13 +114,136 @@ wait_end:
     call fill_background
 
     jmp again
+;     mov byte ptr [bp-1], 0
+; again:
+;     mov al, byte ptr [bp-1]
+;     call fill_background
+;
+;     inc byte ptr [bp-1]
+;     jmp again
 
-prg_terminate:
-    mov ax, 0003h
-    int 10h ; restore 80x25 16 color text mode
-
+;     mov di, 264
+;     mov si, 1
+;     mov dx, 15
+;     call clamp
+    jmp $
     mov ax, 4c00h
     int 21h
+
+particles_update proc
+    push bp
+    mov bp, sp
+    sub sp, 4
+    mov word ptr [bp-2], 0 ; counter
+
+    mov al, particles_last_spawned
+    cmp al, 0
+    jne pu_no_need_spawn
+
+pu_no_need_spawn:
+
+pu_update_loop:
+    mov ax, word ptr [bp-2]
+    cmp ax, particles_alive
+    je pu_update_endloop
+
+
+
+    inc word ptr [bp-2]
+    jmp pu_update_loop
+
+pu_update_endloop:
+    mov sp, bp
+    pop bp
+    ret
+particles_update endp
+
+particles_draw proc
+    push bp
+    mov bp, sp
+    sub sp, 4
+    mov word ptr [bp-2], 0 ; counter
+
+pd_begin:
+    mov ax, particles_alive
+    cmp word ptr [bp-2], ax
+    je pd_end
+
+    mov di, word ptr [bp-2]
+    call draw_particle
+
+    inc word ptr [bp-2]
+    jmp pd_begin
+
+pd_end:
+    mov sp, bp
+    pop bp
+    ret
+particles_draw endp
+
+; di - index
+draw_particle proc
+    push bp
+    mov bp, sp
+    sub sp, 5
+
+    mov word ptr [bp-2], 0 ; row counter
+    mov word ptr [bp-4], 0 ; col counter
+
+    mov ax, di
+    mov bx, sizeof particle
+    mul bx
+    mov di, ax ; di - offset in particles table
+    lea bx, [di+4] ; color offset
+
+    mov al, [particles+bx]
+    mov byte ptr [bp-5], al ; saved color
+
+    mov ax, 0a000h
+    mov es, ax
+dp_rowsloop:
+    cmp word ptr [bp-2], PARTICLE_SIZE
+    je dp_endloop
+dp_colsloop:
+    cmp word ptr [bp-4], PARTICLE_SIZE
+    je dp_endcol
+    xor dx, dx
+
+    lea bx, [particles+di]
+    mov ax, [bx] ; particle x
+    push bx
+    mov bx, COLS
+    mul bx
+
+    pop bx
+    add ax, word ptr [bx+2] ; now pointing to left top corner
+
+    add ax, word ptr [bp-4] ; add current col
+    push ax
+
+    mov ax, word ptr [bp-2]
+    mov bx, COLS
+    mul bx
+
+    pop bx
+    add bx, ax
+
+    mov al, byte ptr [bp-5] ; restore color
+
+    mov byte ptr es:[bx], al ; write pixel
+
+    inc word ptr [bp-4]
+    jmp dp_colsloop
+dp_endcol:
+    inc word ptr [bp-2]
+    mov word ptr [bp-4], 0
+    jmp dp_rowsloop
+
+dp_endloop:
+    mov sp, bp
+    pop bp
+    ret
+draw_particle endp
 
 ; di - new random seed
 srand proc
@@ -225,18 +302,11 @@ clamp proc
     ret
 clamp endp
 
-; Bresenham
 ; al - color
 drawline proc
     push bp
     mov bp, sp
-    sub sp, 18
-
-    mov bx, p1.x
-    mov word ptr [bp-16], bx ; saved p1.x
-
-    mov bx, p1.y
-    mov word ptr [bp-18], bx ; saved p1.y
+    sub sp, 16
 
     mov byte ptr [bp-12], al ; saved color
 
@@ -330,13 +400,6 @@ do_not_break2:
     jmp dl_begin
 
 dl_end:
-
-    mov bx, word ptr [bp-16]
-    mov p1.x, bx
-
-    mov bx, word ptr [bp-18]
-    mov p1.y, bx
-
     mov sp, bp
     pop bp
     ret
