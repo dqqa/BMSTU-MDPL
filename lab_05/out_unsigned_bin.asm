@@ -13,6 +13,10 @@ print_unsigned_binary:
 
     mov word [rbp-2], 15 ; bit counter
     mov word [rbp-4], di ; saved number
+
+    lea rdi, [bin_print_msg]
+    call printf wrt ..plt
+
 .loop:
     cmp word [rbp-2], 0
     jl .endloop
@@ -48,6 +52,8 @@ print_unsigned_binary:
 
 section .rodata
 bit_output_fmt db `%u`, 0
+bin_print_msg db `Binary: `, 0
+
 newline db 10, 0
 
 section .note.GNU-stack

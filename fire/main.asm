@@ -47,15 +47,8 @@ particle ends
     mov di, 0123h
     call srand
 
-    ; call rand
-    ; call rand
-    ; call rand
-
     mov al, 13h
     int 10h
-;
-;     mov al, 15
-;     call drawline
 
     xor dx, dx
     mov ax, COLS
@@ -260,9 +253,9 @@ srand endp
 
 ; -> ax random number
 rand proc
-    ; state ^= state << 13;
-    ; state ^= state >> 17;
-    ; state ^= state << 5;
+    ; state ^= state << 7;
+    ; state ^= state >> 9;
+    ; state ^= state << 3;
     ; return state;
     mov ax, rand_state
     mov cx, 7

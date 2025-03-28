@@ -21,6 +21,6 @@ print_signed_decimal:
     ret
 
 section .rodata
-print_8bit_fmt db `%hhi\n`, 0
+print_8bit_fmt db `Stripped signed decimal: %hhi\n`, 0
 
 section .note.GNU-stack

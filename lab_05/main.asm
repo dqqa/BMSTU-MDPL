@@ -24,6 +24,12 @@ main:
 
     mov word [rbp-2], ax
 
+    lea rdi, [print_msg]
+    mov si, ax
+    mov dx, ax
+
+    call printf wrt ..plt
+
 .loop_begin:
     lea rdi, [menu]
     call printf wrt ..plt
@@ -107,8 +113,6 @@ Enter option: `, 0
 menu_opt_scan_fmt db "%d", 0
 
 print_msg db `You entered: \`%d\` (0x%hx)\n`, 0
-bin_print_msg db `Binary: `, 0
-stripped_print_msg db `Stripped signed decimal: `, 0
 newline db 10, 0
 
 section .data.rel
