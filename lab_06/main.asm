@@ -105,6 +105,12 @@ unregister:
     mov ah, 49h
     int 21h
 
+    mov al, 0f3h
+    out 60h, al
+
+    mov al, 00100000b
+    out 60h, al
+
     mov dx, OFFSET unregistered_msg
     mov ah, 09h
     int 21h
