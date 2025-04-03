@@ -4,15 +4,13 @@
 code SEGMENT
     ASSUME cs:code, ds:code
     ORG 100h
+
 start:
-    jmp init
+    jmp main
 
-    registered_msg db "Successfully registered!", 0Ah, 0Dh, '$'
-    unregistered_msg db "Successfully unregistered!", 0Ah, 0Dh, '$'
-    test_msg db "Test", 0Dh, 0Ah, '$'
-
+    ; Все находится в сегменте CS, т.к. внутри прерывания будет доступен только он
     cur_state db 11111b
-    is_registered dw 0DEADh
+    pattern dw 0DEADh
     last_time db ?
     old_handler dd ?
 
@@ -25,12 +23,12 @@ handler proc
     push es
 
     ; dh - seconds
-    mov ah, 02
+    mov ah, 02 ; GetCurrentTime
     int 1ah
 
-    cmp last_time, dh
+    cmp cs:last_time, dh
     je handler_exit
-    mov last_time, dh
+    mov cs:last_time, dh
 
     call change_speed
 
@@ -51,13 +49,13 @@ change_speed proc
     mov al, 0f3h
     out 60h, al
 
-    xor al, al
-    or al, 00100000b
-    or al, cur_state
+    mov al, 00100000b
+    or al, cs:cur_state
     out 60h, al
 
-    dec cur_state
-    cmp cur_state, 0
+    ; cs: т.к. мы находимся в прерывании, т.е. ds, и остальные сегментные регистры отличаются от нашего cs!
+    dec cs:cur_state
+    cmp cs:cur_state, 0
     jl cs_reset
     jmp cs_exit
 
@@ -68,11 +66,17 @@ cs_exit:
     ret
 change_speed endp
 
-init:
+main:
+    xor ax, ax
+    mov al, cur_state
+    call print_num
+
     mov ax, 3509h
     int 21h
 
-    cmp es:is_registered, 0DEADh ; Сравнение с паттерном. Если ISR не зарегистрирован, es:is_registered будет отличаться (вероятно) от 0xDEAD
+    ; Сравнение с паттерном. Если ISR (Interrupt Service Routine) не зарегистрирован, es:pattern будет отличаться (вероятно) от 0xDEAD
+    ; Можно сравнивать OFFSET handler (надежнее).
+    cmp es:pattern, 0DEADh
     je unregister
 
     mov word ptr old_handler, bx
@@ -86,7 +90,7 @@ init:
     mov ah, 09h
     int 21h
 
-    mov dx, OFFSET init
+    mov dx, OFFSET main
     int 27h
 
 unregister:
@@ -104,18 +108,76 @@ unregister:
     ; Чистим память
     mov ah, 49h
     int 21h
+    jnc no_error
 
-    mov al, 0f3h
-    out 60h, al
+    mov ah, 09h
+    mov dx, OFFSET error_msg
+    int 21h
+    jmp exit
 
-    mov al, 00100000b
-    out 60h, al
-
+no_error:
     mov dx, OFFSET unregistered_msg
     mov ah, 09h
     int 21h
 
+exit:
+    ; Восстановим частоту повтора клавиатуры
+    mov al, 0f3h
+    out 60h, al
+    mov al, 00100000b
+    out 60h, al
+
     mov ax, 4c00h
     int 21h
+
+; ax - num
+print_num proc
+    push bp
+    mov bp, sp
+    sub sp, 4
+
+    mov word ptr [bp-2], ax
+
+pn_begin:
+    cmp word ptr [bp-2], 0
+    je pn_end
+
+    mov bx, word ptr [bp-2]
+    and bx, 1111000000000000b
+    mov cx, 12
+pn_shr_begin:
+    shr bx, 1
+    loop pn_shr_begin
+
+    mov dl, byte ptr [hex_digits+bx]
+    mov ah, 02h
+    int 21h
+
+    mov cx, 4
+pn_div_loop:
+    shl word ptr [bp-2], 1
+    loop pn_div_loop
+
+    jmp pn_begin
+
+pn_end:
+    mov dx, OFFSET newline
+    mov ah, 09h
+    int 21h
+
+    mov sp, bp
+    pop bp
+    ret
+print_num endp
+
+; Тут, т.к. эту память можно после регистрации ISR освободить
+registered_msg db "Successfully registered!", 0Ah, 0Dh, '$'
+unregistered_msg db "Successfully unregistered!", 0Ah, 0Dh, '$'
+error_msg db "An error occured!", 0Ah, 0Dh, '$'
+
+newline db 0Ah, 0Dh, '$'
+
+hex_digits db "0123456789ABCDEF"
+
 code ENDS
 END start
