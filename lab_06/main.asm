@@ -34,7 +34,7 @@ handler proc
 
 handler_exit:
     pushf
-    call cs:old_handler
+    call dword ptr cs:old_handler
 
     pop es
     pop ds
