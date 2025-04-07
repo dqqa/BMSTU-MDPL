@@ -1,3 +1,5 @@
+// To install 32-bit libc & compiler toolchain: `sudo apt install gcc-multilib`
+
 #include <stdio.h>
 #include <string.h>
 
