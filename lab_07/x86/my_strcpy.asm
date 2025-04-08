@@ -12,24 +12,33 @@ my_strcpy:
 
     mov edi, dword [ebp+8]  ; dst
     mov esi, dword [ebp+12] ; src
-    ; mov dword [rbp-8], edi
     mov ecx, dword [ebp+16] ; size
-    lea eax, [edi+ecx]
-    cmp eax, esi
-    ja .fwd
 
     cmp edi, esi
-    jb .fwd
+    je .end ; Do nothing
+    jb .fwd ; dest < src
+
+    mov eax, esi
+    add eax, ecx
+    cmp edi, eax
+    jae .fwd ; (dest > src) && (dest >= src+cnt)
+
     std
     lea esi, [esi+ecx-1]
     lea edi, [edi+ecx-1]
-
-.fwd:
     rep movsb
     cld
 
+    add edi, dword [ebp+16]
+    inc edi
+    mov byte [edi], 0 ; Терминирующий '\0'
+    jmp .end
+
+.fwd:
+    rep movsb
     mov byte [edi], 0 ; Терминирующий '\0'
 
+.end:
     mov eax, dword [ebp+8]
 
     mov esp, ebp

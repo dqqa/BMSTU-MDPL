@@ -50,5 +50,9 @@ int main(void)
     my_strcpy(buf, buf + 1, my_strlen(buf) - 1); // Две строки накладываются друг на друга
     printf("Overlapping buf: `%s`\n", buf);
 
+    strcpy(buf, "qwertyuiop");
+    my_strcpy(buf + 1, buf, my_strlen(buf) - 1); // Две строки накладываются друг на друга
+    printf("Overlapping buf: `%s`\n", buf);
+
     return 0;
 }
