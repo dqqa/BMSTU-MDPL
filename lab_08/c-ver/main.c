@@ -19,12 +19,12 @@ static int find_nearest_power(long long num)
 
 static void on_dialog_response(GtkDialog *dialog, gint response_id, gpointer user_data)
 {
-    gtk_widget_destroy(GTK_WIDGET(dialog));
+    gtk_widget_destroy(dialog);
 }
 
 static void calc_and_display_pow(GtkWidget *widget, gpointer data)
 {
-    const gchar *text = gtk_entry_get_text(GTK_ENTRY(data));
+    const gchar *text = gtk_entry_get_text(data);
     if (text && *text)
     {
         char *endptr;
@@ -55,18 +55,18 @@ static void activate(GtkApplication *app, gpointer user_data)
 {
     (void)user_data;
     GtkWidget *window = gtk_application_window_new(app);
-    gtk_window_set_title(GTK_WINDOW(window), "Window");
-    gtk_window_set_default_size(GTK_WINDOW(window), 200, 200);
+    gtk_window_set_title(window, "Window");
+    gtk_window_set_default_size(window, 200, 200);
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_widget_destroyed), &window);
 
     GtkWidget *grid = grid = gtk_grid_new();
     GtkWidget *button = gtk_button_new_with_label("Вычислить степень");
     GtkWidget *text_entry = gtk_entry_new();
 
-    gtk_container_add(GTK_CONTAINER(window), grid);
+    gtk_container_add(window, grid);
 
-    gtk_grid_attach(GTK_GRID(grid), button, 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), text_entry, 0, 1, 1, 1);
+    gtk_grid_attach(grid, button, 0, 0, 1, 1);
+    gtk_grid_attach(grid, text_entry, 0, 1, 1, 1);
 
     g_signal_connect(button, "clicked", G_CALLBACK(calc_and_display_pow), text_entry);
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
     app = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
-    status = g_application_run(G_APPLICATION(app), argc, argv);
+    status = g_application_run(app, argc, argv);
     g_object_unref(app);
     return status;
 }

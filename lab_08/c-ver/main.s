@@ -43,12 +43,7 @@ on_dialog_response:
 	mov	QWORD PTR -8[rbp], rdi
 	mov	DWORD PTR -12[rbp], esi
 	mov	QWORD PTR -24[rbp], rdx
-	call	gtk_widget_get_type@PLT
-	mov	rdx, rax
 	mov	rax, QWORD PTR -8[rbp]
-	mov	rsi, rdx
-	mov	rdi, rax
-	call	g_type_check_instance_cast@PLT
 	mov	rdi, rax
 	call	gtk_widget_destroy@PLT
 	nop
@@ -87,12 +82,7 @@ calc_and_display_pow:
 	mov	rax, QWORD PTR fs:40
 	mov	QWORD PTR -8[rbp], rax
 	xor	eax, eax
-	call	gtk_entry_get_type@PLT
-	mov	rdx, rax
 	mov	rax, QWORD PTR -80[rbp]
-	mov	rsi, rdx
-	mov	rdi, rax
-	call	g_type_check_instance_cast@PLT
 	mov	rdi, rax
 	call	gtk_entry_get_text@PLT
 	mov	QWORD PTR -48[rbp], rax
@@ -227,23 +217,12 @@ activate:
 	mov	rdi, rax
 	call	gtk_application_window_new@PLT
 	mov	QWORD PTR -40[rbp], rax
-	call	gtk_window_get_type@PLT
-	mov	rdx, rax
 	mov	rax, QWORD PTR -40[rbp]
+	lea	rdx, .LC4[rip]
 	mov	rsi, rdx
 	mov	rdi, rax
-	call	g_type_check_instance_cast@PLT
-	mov	rdx, rax
-	lea	rax, .LC4[rip]
-	mov	rsi, rax
-	mov	rdi, rdx
 	call	gtk_window_set_title@PLT
-	call	gtk_window_get_type@PLT
-	mov	rdx, rax
 	mov	rax, QWORD PTR -40[rbp]
-	mov	rsi, rdx
-	mov	rdi, rax
-	call	g_type_check_instance_cast@PLT
 	mov	edx, 200
 	mov	esi, 200
 	mov	rdi, rax
@@ -265,44 +244,26 @@ activate:
 	mov	QWORD PTR -24[rbp], rax
 	call	gtk_entry_new@PLT
 	mov	QWORD PTR -16[rbp], rax
-	call	gtk_container_get_type@PLT
-	mov	rdx, rax
 	mov	rax, QWORD PTR -40[rbp]
+	mov	rdx, QWORD PTR -32[rbp]
 	mov	rsi, rdx
 	mov	rdi, rax
-	call	g_type_check_instance_cast@PLT
-	mov	rdx, rax
-	mov	rax, QWORD PTR -32[rbp]
-	mov	rsi, rax
-	mov	rdi, rdx
 	call	gtk_container_add@PLT
-	call	gtk_grid_get_type@PLT
-	mov	rdx, rax
+	mov	rsi, QWORD PTR -24[rbp]
 	mov	rax, QWORD PTR -32[rbp]
-	mov	rsi, rdx
-	mov	rdi, rax
-	call	g_type_check_instance_cast@PLT
-	mov	rdi, rax
-	mov	rax, QWORD PTR -24[rbp]
 	mov	r9d, 1
 	mov	r8d, 1
 	mov	ecx, 0
 	mov	edx, 0
-	mov	rsi, rax
+	mov	rdi, rax
 	call	gtk_grid_attach@PLT
-	call	gtk_grid_get_type@PLT
-	mov	rdx, rax
+	mov	rsi, QWORD PTR -16[rbp]
 	mov	rax, QWORD PTR -32[rbp]
-	mov	rsi, rdx
-	mov	rdi, rax
-	call	g_type_check_instance_cast@PLT
-	mov	rdi, rax
-	mov	rax, QWORD PTR -16[rbp]
 	mov	r9d, 1
 	mov	r8d, 1
 	mov	ecx, 1
 	mov	edx, 0
-	mov	rsi, rax
+	mov	rdi, rax
 	call	gtk_grid_attach@PLT
 	mov	rdx, QWORD PTR -16[rbp]
 	mov	rax, QWORD PTR -24[rbp]
@@ -361,17 +322,11 @@ main:
 	lea	rsi, .LC9[rip]
 	mov	rdi, rax
 	call	g_signal_connect_data@PLT
-	call	g_application_get_type@PLT
-	mov	rdx, rax
-	mov	rax, QWORD PTR -8[rbp]
-	mov	rsi, rdx
-	mov	rdi, rax
-	call	g_type_check_instance_cast@PLT
-	mov	rcx, rax
 	mov	rdx, QWORD PTR -32[rbp]
-	mov	eax, DWORD PTR -20[rbp]
-	mov	esi, eax
-	mov	rdi, rcx
+	mov	ecx, DWORD PTR -20[rbp]
+	mov	rax, QWORD PTR -8[rbp]
+	mov	esi, ecx
+	mov	rdi, rax
 	call	g_application_run@PLT
 	mov	DWORD PTR -12[rbp], eax
 	mov	rax, QWORD PTR -8[rbp]

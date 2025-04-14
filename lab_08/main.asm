@@ -1,8 +1,6 @@
 ; Dependencies:
 ; - GTK3 - `sudo apt install libgtk-3-dev`
 
-; TODO: Fix segfault on app exit!
-
 default rel
 
 %define WINDOW_WIDTH 200
@@ -27,7 +25,7 @@ main:
     push rbp
     mov rbp, rsp
     sub rsp, 32
-    
+
     mov [rbp-16], rdi ; argc
     mov [rbp-24], rsi ; argv
 
@@ -53,7 +51,7 @@ main:
     mov rdi, [rbp-8]
     call g_object_unref wrt ..plt
 
-    mov eax, [ebp-28]
+    mov eax, [rbp-28]
 
     mov rsp, rbp
     pop rbp
@@ -62,6 +60,7 @@ main:
 on_window_destroy:
     jmp gtk_main_quit wrt ..plt
 
+; static void activate(GtkApplication *app, gpointer user_data)
 activate:
     push rbp
     mov rbp, rsp
@@ -75,15 +74,17 @@ activate:
     lea rsi, [window_name]
     call gtk_window_set_title wrt ..plt
     
-    mov rdi, [rbp-16]
-    mov esi, WINDOW_WIDTH
-    mov edx, WINDOW_HEIGHT
-    call gtk_window_set_default_size wrt ..plt
+    ; Let GTK automatically set size of window
+
+    ; mov rdi, [rbp-16]
+    ; mov esi, WINDOW_WIDTH
+    ; mov edx, WINDOW_HEIGHT
+    ; call gtk_window_set_default_size wrt ..plt
 
     mov rdi, [rbp-16]
     lea rsi, [sig_destroy]
-    lea rdx, [on_window_destroy]
-    ; mov rdx, [gtk_widget_destroyed wrt ..got]
+    ; lea rdx, [on_window_destroy]
+    mov rdx, [gtk_widget_destroyed wrt ..got]
     ; lea rcx, [rbp-16]
     xor rcx, rcx
     xor r8, r8
@@ -259,4 +260,5 @@ sig_destroy db "destroy", 0
 calc_pow_btn_text db "Вычислить степень", 0
 res_msg db "Ближайшая степень двойки: %d.", 0
 err_msg db "Возникла ошибка!", 0
+
 section .note.GNU-stack
