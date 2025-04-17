@@ -3,8 +3,8 @@
 
 default rel
 
-%define WINDOW_WIDTH 200
-%define WINDOW_HEIGHT 200
+%define WINDOW_WIDTH 400
+%define WINDOW_HEIGHT 150
 %define BASE 10
 
 %define GTK_DIALOG_MODAL 1
@@ -14,13 +14,17 @@ default rel
 
 %define GTK_BUTTONS_OK 1
 
+%define GTK_ALIGN_END 2
+
 section .text
     global main
     extern gtk_application_new, g_application_run, g_object_unref, gtk_application_window_new
     extern gtk_window_set_title, gtk_window_set_default_size, gtk_grid_new, gtk_button_new_with_label
     extern gtk_entry_new, gtk_container_add, gtk_grid_attach, gtk_widget_show_all, g_signal_connect_data
     extern gtk_widget_destroyed, gtk_widget_destroy, gtk_entry_get_text, strtoll
-    extern gtk_message_dialog_new, gtk_main_quit
+    extern gtk_message_dialog_new, gtk_main_quit, gtk_container_set_border_width, gtk_grid_set_row_spacing
+    extern gtk_grid_set_column_spacing, gtk_label_new, gtk_entry_set_placeholder_text, gtk_widget_set_hexpand
+    extern gtk_widget_set_halign
 main:
     push rbp
     mov rbp, rsp
@@ -73,14 +77,17 @@ activate:
     mov rdi, rax
     lea rsi, [window_name]
     call gtk_window_set_title wrt ..plt
-    
-    ; Let GTK automatically set size of window
 
-    ; mov rdi, [rbp-16]
-    ; mov esi, WINDOW_WIDTH
-    ; mov edx, WINDOW_HEIGHT
-    ; call gtk_window_set_default_size wrt ..plt
+    mov rdi, [rbp-16]
+    mov esi, WINDOW_WIDTH
+    mov edx, WINDOW_HEIGHT
+    call gtk_window_set_default_size wrt ..plt
 
+    mov rdi, [rbp-16]
+    mov rsi, 10
+    call gtk_container_set_border_width wrt ..plt
+
+    ; Setup exit handler
     mov rdi, [rbp-16]
     lea rsi, [sig_destroy]
     ; lea rdx, [on_window_destroy]
@@ -94,22 +101,55 @@ activate:
     call gtk_grid_new wrt ..plt
     mov [rbp-24], rax ; GtkWidget *grid
 
+    mov rdi, [rbp-24]
+    mov rsi, 10
+    call gtk_grid_set_row_spacing wrt ..plt
+
+    mov rdi, [rbp-24]
+    mov rsi, 10
+    call gtk_grid_set_column_spacing wrt ..plt
+
+    lea rdi, [prompt_label_text]
+    call gtk_label_new wrt ..plt
+    mov [rbp-48], rax ; GtkWidget *label
+
     lea rdi, [calc_pow_btn_text]
     call gtk_button_new_with_label wrt ..plt
     mov [rbp-32], rax ; GtkWidget *button
 
+    mov rdi, [rbp-32]
+    mov rsi, GTK_ALIGN_END
+    call gtk_widget_set_halign wrt ..plt
+
+    mov rdi, [rbp-32]
+    mov rsi, 1 ; TRUE
+    call gtk_widget_set_hexpand wrt ..plt
+
     call gtk_entry_new wrt ..plt
     mov [rbp-40], rax ; GtkWidget *text_entry
+
+    mov rdi, [rbp-40]
+    lea rsi, [placeholder_text]
+    call gtk_entry_set_placeholder_text wrt ..plt
 
     mov rdi, [rbp-16]
     mov rsi, [rbp-24]
     call gtk_container_add wrt ..plt
 
+    ; attach label
+    mov rdi, [rbp-24]
+    mov rsi, [rbp-48]
+    xor edx, edx
+    xor ecx, ecx
+    mov r8d, 1
+    mov r9d, 1
+    call gtk_grid_attach wrt ..plt
+
     ; attach button
     mov rdi, [rbp-24]
     mov rsi, [rbp-32]
     xor edx, edx
-    xor ecx, ecx
+    mov ecx, 2
     mov r8d, 1
     mov r9d, 1
     call gtk_grid_attach wrt ..plt
@@ -250,7 +290,7 @@ calc_and_display_pow:
 
 section .rodata
 app_id db "org.gtk.lab_08", 0
-window_name db "Lab 08", 0
+window_name db "Lab 08. Калькулятор ближайшей степени 2.", 0
 
 sig_clicked db "clicked", 0
 sig_response db "response", 0
@@ -261,4 +301,6 @@ calc_pow_btn_text db "Вычислить степень", 0
 res_msg db "Ближайшая степень двойки: %d.", 0
 err_msg db "Возникла ошибка!", 0
 
+prompt_label_text db "Введите число:", 0
+placeholder_text db "Например, 42", 0
 section .note.GNU-stack
