@@ -22,6 +22,13 @@ static void on_dialog_response(GtkDialog *dialog, gint response_id, gpointer use
     gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
+static void copy_to_clipboard(GtkWidget *widget, gpointer data)
+{
+    GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    const gchar *text = gtk_entry_get_text(GTK_ENTRY(data));
+    gtk_clipboard_set_text(clipboard, text, strlen(text));
+}
+
 static void calc_and_display_pow(GtkWidget *widget, gpointer data)
 {
     const gchar *text = gtk_entry_get_text(GTK_ENTRY(data));
@@ -31,10 +38,11 @@ static void calc_and_display_pow(GtkWidget *widget, gpointer data)
         long long num = strtoll(text, &endptr, BASE);
         if (*endptr != '\0')
         {
-            GtkWidget *msg_dialog = gtk_message_dialog_new(NULL, 
-                GTK_DIALOG_MODAL, 
-                GTK_MESSAGE_ERROR, 
-                GTK_BUTTONS_OK, 
+            GtkWidget *msg_dialog = gtk_message_dialog_new(
+                NULL,
+                GTK_DIALOG_MODAL,
+                GTK_MESSAGE_ERROR,
+                GTK_BUTTONS_OK,
                 "Ошибка ввода!\nРазрешены только целые числа.");
             gtk_window_set_title(GTK_WINDOW(msg_dialog), "Ошибка");
             g_signal_connect(msg_dialog, "response", G_CALLBACK(on_dialog_response), NULL);
@@ -43,10 +51,11 @@ static void calc_and_display_pow(GtkWidget *widget, gpointer data)
         }
 
         int pow = find_nearest_power(num);
-        GtkWidget *msg_dialog = gtk_message_dialog_new(NULL, 
-            GTK_DIALOG_MODAL, 
-            GTK_MESSAGE_INFO, 
-            GTK_BUTTONS_OK, 
+        GtkWidget *msg_dialog = gtk_message_dialog_new(
+            NULL,
+            GTK_DIALOG_MODAL,
+            GTK_MESSAGE_INFO,
+            GTK_BUTTONS_OK,
             "Ближайшая степень двойки ≥ %lld:\n2^%d = %lld", num, pow, (1LL << pow));
         gtk_window_set_title(GTK_WINDOW(msg_dialog), "Результат");
         g_signal_connect(msg_dialog, "response", G_CALLBACK(on_dialog_response), NULL);
@@ -54,10 +63,11 @@ static void calc_and_display_pow(GtkWidget *widget, gpointer data)
     }
     else
     {
-        GtkWidget *msg_dialog = gtk_message_dialog_new(NULL, 
-            GTK_DIALOG_MODAL, 
-            GTK_MESSAGE_ERROR, 
-            GTK_BUTTONS_OK, 
+        GtkWidget *msg_dialog = gtk_message_dialog_new(
+            NULL,
+            GTK_DIALOG_MODAL,
+            GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_OK,
             "Пожалуйста, введите число");
         gtk_window_set_title(GTK_WINDOW(msg_dialog), "Ошибка");
         g_signal_connect(msg_dialog, "response", G_CALLBACK(on_dialog_response), NULL);
@@ -77,22 +87,28 @@ static void activate(GtkApplication *app, gpointer user_data)
     GtkWidget *grid = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
     gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
-    
+
     GtkWidget *label = gtk_label_new("Введите число:");
     GtkWidget *text_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(text_entry), "Например: 42");
-    
+
     GtkWidget *button = gtk_button_new_with_label("Вычислить степень");
     gtk_widget_set_halign(button, GTK_ALIGN_END);
+    gtk_widget_set_hexpand(button, TRUE);
+
+    GtkWidget *copy_clipboard_btn = gtk_button_new_with_label("Скопировать");
+    // gtk_widget_set_halign(button, GTK_ALIGN_START);
     gtk_widget_set_hexpand(button, TRUE);
 
     gtk_container_add(GTK_CONTAINER(window), grid);
 
     gtk_grid_attach(GTK_GRID(grid), label, 0, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), text_entry, 0, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), button, 0, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), button, 1, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), copy_clipboard_btn, 0, 2, 1, 1);
 
     g_signal_connect(button, "clicked", G_CALLBACK(calc_and_display_pow), text_entry);
+    g_signal_connect(copy_clipboard_btn, "clicked", G_CALLBACK(copy_to_clipboard), text_entry);
 
     gtk_widget_show_all(window);
 }

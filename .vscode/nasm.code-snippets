@@ -15,7 +15,8 @@
 		"body": [
 			"    push rbp",
 			"    mov rbp, rsp",
-			"    sub rsp, $1\n\n$2\n",
+			"    sub rsp, $1\n",
+			"    $2\n",
 			"    mov rsp, rbp",
 			"    pop rbp",
 			"    ret\n"

@@ -16,15 +16,19 @@ default rel
 
 %define GTK_ALIGN_END 2
 
+%define GDK_SELECTION_CLIPBOARD 69
+
 section .text
     global main
+    extern strlen
+
     extern gtk_application_new, g_application_run, g_object_unref, gtk_application_window_new
     extern gtk_window_set_title, gtk_window_set_default_size, gtk_grid_new, gtk_button_new_with_label
     extern gtk_entry_new, gtk_container_add, gtk_grid_attach, gtk_widget_show_all, g_signal_connect_data
     extern gtk_widget_destroyed, gtk_widget_destroy, gtk_entry_get_text, strtoll
     extern gtk_message_dialog_new, gtk_main_quit, gtk_container_set_border_width, gtk_grid_set_row_spacing
     extern gtk_grid_set_column_spacing, gtk_label_new, gtk_entry_set_placeholder_text, gtk_widget_set_hexpand
-    extern gtk_widget_set_halign
+    extern gtk_widget_set_halign, gtk_clipboard_set_text, gtk_clipboard_get
 main:
     push rbp
     mov rbp, rsp
@@ -125,6 +129,14 @@ activate:
     mov rsi, 1 ; TRUE
     call gtk_widget_set_hexpand wrt ..plt
 
+    lea rdi, [copy_clipboard_text]
+    call gtk_button_new_with_label wrt ..plt
+    mov [rbp-56], rax ; GtkWidget *copy_clipboard_btn
+
+    mov rdi, [rbp-56]
+    mov rsi, 1 ; TRUE
+    call gtk_widget_set_hexpand wrt ..plt
+
     call gtk_entry_new wrt ..plt
     mov [rbp-40], rax ; GtkWidget *text_entry
 
@@ -148,7 +160,7 @@ activate:
     ; attach button
     mov rdi, [rbp-24]
     mov rsi, [rbp-32]
-    xor edx, edx
+    mov edx, 1
     mov ecx, 2
     mov r8d, 1
     mov r9d, 1
@@ -163,6 +175,15 @@ activate:
     mov r9d, 1
     call gtk_grid_attach wrt ..plt
 
+    ; attach copy_clipboard_btn
+    mov rdi, [rbp-24]
+    mov rsi, [rbp-56]
+    xor edx, edx
+    mov ecx, 2
+    mov r8d, 1
+    mov r9d, 1
+    call gtk_grid_attach wrt ..plt
+
     mov rdi, [rbp-32]
     lea rsi, [sig_clicked]
     lea rdx, [calc_and_display_pow]
@@ -171,8 +192,42 @@ activate:
     xor r9, r9
     call g_signal_connect_data wrt ..plt
 
+    mov rdi, [rbp-56]
+    lea rsi, [sig_clicked]
+    lea rdx, [copy_to_clipboard]
+    mov rcx, [rbp-40]
+    xor r8, r8
+    xor r9, r9
+    call g_signal_connect_data wrt ..plt
+
     mov rdi, [rbp-16]
     call gtk_widget_show_all wrt ..plt
+
+    mov rsp, rbp
+    pop rbp
+    ret
+
+copy_to_clipboard:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 32
+
+    mov [rbp-8], rsi ; gpointer data
+    mov rdi, GDK_SELECTION_CLIPBOARD
+    call gtk_clipboard_get wrt ..plt
+    mov [rbp-16], rax ; GtkClipboard *clipboard
+
+    mov rdi, [rbp-8]
+    call gtk_entry_get_text wrt ..plt
+    mov [rbp-24], rax ; const gchar *text
+
+    mov rdi, [rbp-24]
+    call strlen wrt ..plt
+
+    mov rdx, rax
+    mov rdi, [rbp-16]
+    mov rsi, [rbp-24]
+    call gtk_clipboard_set_text wrt ..plt
 
     mov rsp, rbp
     pop rbp
@@ -298,6 +353,7 @@ sig_activate db "activate", 0
 sig_destroy db "destroy", 0
 
 calc_pow_btn_text db "Вычислить степень", 0
+copy_clipboard_text db "Скопировать", 0
 res_msg db "Ближайшая степень двойки: %d.", 0
 err_msg db "Возникла ошибка!", 0
 
