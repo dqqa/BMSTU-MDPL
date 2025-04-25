@@ -72,7 +72,7 @@ static const uint8_t original_msg[] = {
 bool is_patched(const char *file_path)
 {
     FILE *fp = fopen(file_path, "rb");
-    bool found = find_sig_offset(fp, original_msg, sizeof(original_msg)) == -1;
+    bool found = find_sig_offset(fp, original_msg, sizeof(original_msg)) == (uintptr_t)-1;
     fclose(fp);
 
     return found;
@@ -105,6 +105,7 @@ int patch_file(const char *file_path)
     int rc = ERR_OK;
     FILE *fp = NULL;
 
+    printf("Input new password: ");
     char buf[128];
     if (fgets(buf, sizeof(buf), stdin) == NULL)
     {
@@ -153,19 +154,11 @@ int patch_file(const char *file_path)
 int main(int argc, char **argv)
 {
     int rc = ERR_OK;
-    FILE *fp = NULL;
 
     if (argc != 2)
     {
         fprintf(stderr, "Usage: %s <in-file-path>\n", argv[0]);
         return ERR_ARGS;
-    }
-
-    fp = fopen(argv[1], "rb");
-    if (fp == NULL)
-    {
-        rc = ERR_IO;
-        goto cleanup;
     }
 
     if (is_patched(argv[1]))
@@ -179,6 +172,8 @@ int main(int argc, char **argv)
         rc = patch_file(argv[1]);
     }
 
-    cleanup:
+    if (rc != ERR_OK)
+        printf("An error occured!\n");
+
     return rc;
 }
