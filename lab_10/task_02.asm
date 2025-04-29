@@ -26,6 +26,7 @@ main:
 
     push sin_pi
     call printf
+    add esp, 4
     
     fld tword [pi_1]
     fld tword [two]
@@ -36,7 +37,8 @@ main:
 
     push sin_pi_2
     call printf
-    
+    add esp, 4
+
     ; 3.141596
     fld tword [pi_2]
     fsin
@@ -45,7 +47,8 @@ main:
 
     push sin_pi
     call printf
-    
+    add esp, 4
+
     fld tword [pi_2]
     fld tword [two]
     fdivp st1, st0
@@ -55,7 +58,8 @@ main:
 
     push sin_pi_2
     call printf
-    
+    add esp, 4
+
     ; Internal
     fldpi
     fsin
@@ -64,7 +68,8 @@ main:
 
     push sin_pi
     call printf
-    
+    add esp, 4
+
     fldpi
     fld tword [two]
     fdivp st1, st0
@@ -74,6 +79,7 @@ main:
 
     push sin_pi_2
     call printf
+    add esp, 4
 
     xor eax, eax
 
