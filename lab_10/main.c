@@ -1,24 +1,76 @@
 #include <stdio.h>
 #include <time.h>
 
-inline float __attribute__((always_inline)) sum_float(float a, float b)
+inline __attribute__((always_inline)) float sum_float(float a, float b)
 {
     return a + b;
 }
 
-inline float __attribute__((always_inline)) mul_float(float a, float b)
+inline __attribute__((always_inline)) float mul_float(float a, float b)
 {
     return a * b;
 }
 
-inline double __attribute__((always_inline)) sum_dbl(double a, double b)
+inline __attribute__((always_inline)) double sum_dbl(double a, double b)
 {
     return a + b;
 }
 
-inline double __attribute__((always_inline)) mul_dbl(double a, double b)
+inline __attribute__((always_inline)) double mul_dbl(double a, double b)
 {
     return a * b;
+}
+
+float sum_float_asm(float a, float b)
+{
+    float res;
+    __asm__ volatile(
+        "flds %1\n"
+        "flds %2\n"
+        "faddp\n"
+        "fstps %0\n"
+        : "=m"(res)
+        : "m"(a), "m"(b));
+    return res;
+}
+
+double sum_dbl_asm(double a, double b)
+{
+    double res;
+    __asm__ volatile(
+        "fldl %1\n"
+        "fldl %2\n"
+        "faddp\n"
+        "fstpl %0\n"
+        : "=m"(res)
+        : "m"(a), "m"(b));
+    return res;
+}
+
+float mul_float_asm(float a, float b)
+{
+    float res;
+    __asm__ volatile(
+        "flds %1\n"
+        "flds %2\n"
+        "fmulp\n"
+        "fstps %0\n"
+        : "=m"(res)
+        : "m"(a), "m"(b));
+    return res;
+}
+
+double mul_dbl_asm(double a, double b)
+{
+    double res;
+    __asm__ volatile(
+        "fldl %1\n"
+        "fldl %2\n"
+        "fmulp\n"
+        "fstpl %0\n"
+        : "=m"(res)
+        : "m"(a), "m"(b));
+    return res;
 }
 
 inline __attribute__((always_inline)) unsigned long long tick()
@@ -47,15 +99,20 @@ int main(void)
     cur_time(&start);
     for (size_t i = 0; i < ITER_COUNT; ++i)
     {
-        volatile float res = sum_float(i, i);
-        (void)res;
+        // volatile float res = sum_float(i, i);
         // volatile double res = sum_dbl(i, i);
         // volatile float res = mul_float(i, i);
         // volatile double res = mul_dbl(i, i);
+
+        // volatile float res = sum_float_asm(i, i);
+        // volatile float res = mul_float_asm(i, i);
+        // volatile double res = sum_dbl_asm(i, i);
+        volatile double res = mul_dbl_asm(i, i);
+        (void)res;
     }
     cur_time(&end);
 
-    printf("Nsec avg: %f\n", (end-start) / ITER_COUNT);
+    printf("Nsec avg: %f\n", (end - start) / ITER_COUNT);
 
     return 0;
 }
